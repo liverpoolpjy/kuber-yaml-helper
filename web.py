@@ -1,8 +1,64 @@
 from kubernetes import client
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, abort
 from six import iteritems
 
 app = Flask(__name__)
+
+
+class KuberAPI:
+    def __init__(self):
+        pass
+
+    Deployment = {'AppsV1beta1': 'AppsV1beta1Deployment',
+                  'ExtensionsV1beta1': 'ExtensionsV1beta1Deployment',
+                  'v1': 'V1Deployment'}
+
+    Pod = {'v1': 'V1Pod'}
+
+    ReplicaSet = {'v1': 'V1ReplicaSet',
+                  'v1beta1': 'V1beta1ReplicaSet',
+                  'v1beta2': 'V1beta2ReplicaSet'}
+
+    ReplicationController = {'v1': 'V1ReplicationController'}
+
+    StatefulSet = {'v1': 'V1StatefulSet',
+                   'v1beta1': 'V1beta1StatefulSet',
+                   'v1beta2': 'V1beta2StatefulSet'}
+
+    Service = {'v1api': 'V1APIService',
+               'v1': 'V1Service',
+               'v1beta1': 'V1beta1APIService'}
+
+    Volume = {'v1': 'V1Volume'}
+
+    PersistentVolume = {'v1': 'V1PersistentVolume'}
+
+    NameSpace = {'v1': 'V1Namespace'}
+
+    DaemonSet = {'v1': 'V1DaemonSet',
+                 'v1beta1': 'V1beta1DaemonSet',
+                 'v1beta2': 'V1beta2DaemonSet'}
+
+    Job = {'v1': 'V1Job'}
+
+    CronJob = {'v1beta1': 'V1beta1CronJob',
+               'v2alpha1': 'V2alpha1CronJob'}
+
+    Role = {'v1': 'V1Role',
+            'v1alpha1': 'V1alpha1Role',
+            'v1beta1': 'V1beta1Role'}
+
+    RoleBinding = {'v1beta1': 'V1beta1RoleBinding',
+                   'v1alpha1': 'V1alpha1RoleBinding',
+                   'v1': 'V1RoleBinding'}
+
+    ClusterRole = {'v1': 'V1ClusterRole',
+                   'v1alpha1': 'V1alpha1ClusterRole',
+                   'v1beta1': 'V1beta1ClusterRole'}
+
+    ClusterRoleBinding = {'v1beta1': 'V1beta1ClusterRoleBinding',
+                          'v1alpha1': 'V1alpha1ClusterRoleBinding',
+                          'v1': 'V1ClusterRoleBinding'}
 
 
 class Leaves:
@@ -25,7 +81,7 @@ class KuberParser:
     def _name_parser(self, name, attr_name):
         if name.startswith('dict') or name.startswith('datetime') or name.startswith('str') \
                 or name.startswith('int') or name.startswith('bool') or name.startswith('list[str]') \
-                or name.startswith('object'):
+                or name.startswith('object') or name.startswith('list[int]'):
             # self.object = name
             self.object = Leaves(name, attr_name)
             self.has_child_attr = False
@@ -61,13 +117,33 @@ def node():
     for key, value in iteritems(attr.object.swagger_types):
         child = KuberParser(ObjectName=value, attr_name=attr.object.attribute_map[key])
         if child.has_child_attr:
-            item = {"id": child.name + '#' + child.attr_name + '#' + attr.name, "text": child.attr_name,
-                    "children": child.has_child_attr}
+            if child.is_list_attr:
+                item = {"id": child.name + '#' + child.attr_name + ' | list' + '#' + attr.name, "text": child.attr_name + ' | list',
+                        "children": child.has_child_attr}
+            else:
+                item = {"id": child.name + '#' + child.attr_name + '#' + attr.name, "text": child.attr_name,
+                        "children": child.has_child_attr}
         else:
-            item = {"id": child.name + '#' + child.attr_name + '#' + attr.name, "text": child.attr_name + ' ' + child.name,
+            item = {"id": child.name + '#' + child.attr_name + '#' + attr.name, "text": child.attr_name + ' | ' + child.name + '',
                     "type": 'leaf'}
         res['children'].append(item)
     return jsonify(res)
+
+
+@app.route('/get_object')
+def get_object():
+    obj = [i for i in KuberAPI.__dict__.keys() if not i.startswith('__')]
+    return jsonify({'obj': obj})
+
+
+@app.route('/get_version')
+def get_version():
+    obj = request.args.get('obj')
+    if not obj:
+        abort(400)
+    obj = getattr(KuberAPI, obj)
+    versions = [k for k, _ in iteritems(obj)]
+    return jsonify({'versions': versions})
 
 
 @app.route('/index')
