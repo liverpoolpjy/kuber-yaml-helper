@@ -82,7 +82,7 @@ class KuberParser:
         if name.startswith('dict') or name.startswith('datetime') or name.startswith('str') \
                 or name.startswith('int') or name.startswith('bool') or name.startswith('list[str]') \
                 or name.startswith('object') or name.startswith('list[int]'):
-            # self.object = name
+
             self.object = Leaves(name, attr_name)
             self.has_child_attr = False
         elif name.startswith('list['):
@@ -107,12 +107,9 @@ def node(init_id):
         version, attr_name = init_id.split('-')
         parent_name = getattr(KuberAPI, attr_name)[version]
         parent_attr = 'root'
-
     else:
         parent_name, attr_name, parent_attr = args
-    # parent_name = args[0]
-    # attr_name = args[1]
-    # parent_attr = args[-1]
+
     print(request.args.get('object_name'), args)
     if not parent_name:
         parent_name = 'AppsV1beta1Deployment'
