@@ -100,14 +100,20 @@ class KuberParser:
         return getattr(client, self.object.swagger_types[attr])()
 
 
-@app.route('/node/', methods=['post', 'get'])
-def node():
+@app.route('/node/<init_id>', methods=['post', 'get'])
+def node(init_id):
     args = request.args.get('object_name').split('#')
+    if args == ['', '']:
+        version, attr_name = init_id.split('-')
+        parent_name = getattr(KuberAPI, attr_name)[version]
+        parent_attr = 'root'
+
+    else:
+        parent_name, attr_name, parent_attr = args
+    # parent_name = args[0]
+    # attr_name = args[1]
+    # parent_attr = args[-1]
     print(request.args.get('object_name'), args)
-    parent_name = args[0]
-    # attr_name = request.args.get('attr_name')
-    attr_name = args[1]
-    parent_attr = args[-1]
     if not parent_name:
         parent_name = 'AppsV1beta1Deployment'
         attr_name = 'Deployment'
@@ -132,12 +138,20 @@ def node():
 
 @app.route('/get_object')
 def get_object():
+    """
+    return API objects
+    :return:
+    """
     obj = [i for i in KuberAPI.__dict__.keys() if not i.startswith('__')]
     return jsonify({'obj': obj})
 
 
 @app.route('/get_version')
 def get_version():
+    """
+    return API version
+    :return:
+    """
     obj = request.args.get('obj')
     if not obj:
         abort(400)
